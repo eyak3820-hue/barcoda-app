@@ -6,6 +6,7 @@
     <title>מערכת ניהול הזמנות</title>
     <link rel="manifest" href="manifest.json">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -182,10 +183,39 @@
             overflow: hidden;
         }
 
+        .scanner-container video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .scanner-container canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
         .scanner-placeholder {
             text-align: center;
             color: #4CAF50;
             font-size: 1.2rem;
+        }
+
+        .scanner-active {
+            border-color: #2196F3;
+            background: rgba(33, 150, 243, 0.1);
+        }
+
+        .camera-error {
+            background: rgba(220, 53, 69, 0.1);
+            border-color: #dc3545;
+            color: #dc3545;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            text-align: center;
         }
 
         .progress-bar {
@@ -497,19 +527,21 @@
             <div id="newOrderScreen" class="hidden">
                 <div class="card">
                     <h2>הזמנה חדשה</h2>
-                    <div id="scannerAlert" class="alert alert-warning">
-                        הזנה ידנית של מספר הזמנה (סריקת ברקוד לא זמינה בסביבה זו)
-                    </div>
                     
                     <div class="form-group">
                         <label>מספר הזמנה</label>
                         <input type="text" id="orderIdInput" class="form-control" placeholder="הקלד או סרוק מספר הזמנה">
                     </div>
                     
-                    <div class="scanner-container" id="scannerContainer">
-                        <div class="scanner-placeholder">
-                            הקלד מספר הזמנה בשדה למעלה
+                    <div class="scanner-container" id="orderScannerContainer">
+                        <div class="scanner-placeholder" id="orderScannerPlaceholder">
+                            לחץ "התחל סריקה" להפעלת המצלמה
                         </div>
+                    </div>
+                    
+                    <div style="text-align: center; margin: 15px 0;">
+                        <button class="btn btn-primary" onclick="startOrderScanner()">התחל סריקת הזמנה</button>
+                        <button class="btn btn-secondary" onclick="stopOrderScanner()">עצור סריקה</button>
                     </div>
                     
                     <button class="btn btn-primary" onclick="startOrderProcessing()">התחל עיבוד הזמנה</button>
@@ -531,6 +563,17 @@
                         <div class="form-group">
                             <label>סריקת חלק</label>
                             <input type="text" id="partInput" class="form-control" placeholder="הקלד או סרוק מספר חלק">
+                        </div>
+                        
+                        <div class="scanner-container" id="partScannerContainer">
+                            <div class="scanner-placeholder" id="partScannerPlaceholder">
+                                לחץ "התחל סריקה" להפעלת המצלמה
+                            </div>
+                        </div>
+                        
+                        <div style="text-align: center; margin: 15px 0;">
+                            <button class="btn btn-primary" onclick="startPartScanner()">התחל סריקת חלקים</button>
+                            <button class="btn btn-secondary" onclick="stopPartScanner()">עצור סריקה</button>
                         </div>
 
                         <div class="parts-list">
@@ -620,6 +663,10 @@
             scannedParts: []
         };
 
+        // Barcode Scanner variables
+        let orderScanner = null;
+        let partScanner = null;
+
         // Initialize App
         function init() {
             loadData();
@@ -630,6 +677,119 @@
             } else {
                 showLogin();
             }
+        }
+
+        // Barcode Scanner Functions
+        function startOrderScanner() {
+            if (orderScanner) {
+                stopOrderScanner();
+            }
+            
+            orderScanner = new Html5Qrcode("orderScannerContainer");
+            
+            // Configuration for barcode scanning
+            const config = {
+                fps: 10,
+                qrbox: { width: 300, height: 150 },
+                supportedScanTypes: [
+                    Html5QrcodeScanType.SCAN_TYPE_CAMERA
+                ]
+            };
+
+            orderScanner.start(
+                { facingMode: "environment" }, // Use back camera
+                config,
+                (decodedText, decodedResult) => {
+                    console.log(`Order barcode detected: ${decodedText}`);
+                    document.getElementById('orderIdInput').value = decodedText;
+                    stopOrderScanner();
+                },
+                (errorMessage) => {
+                    console.log(`Scan error: ${errorMessage}`);
+                }
+            ).catch(err => {
+                console.error("Failed to start order scanner:", err);
+                showCameraError("orderScannerContainer", "לא ניתן לגשת למצלמה. אנא ודא שנתת הרשאה למצלמה.");
+            });
+
+            document.getElementById('orderScannerPlaceholder').textContent = "סורק ברקוד הזמנה...";
+            document.getElementById('orderScannerContainer').classList.add('scanner-active');
+        }
+
+        function stopOrderScanner() {
+            if (orderScanner) {
+                orderScanner.stop().then(() => {
+                    orderScanner.clear();
+                    orderScanner = null;
+                    document.getElementById('orderScannerPlaceholder').textContent = "לחץ 'התחל סריקה' להפעלת המצלמה";
+                    document.getElementById('orderScannerContainer').classList.remove('scanner-active');
+                }).catch(err => {
+                    console.error("Error stopping order scanner:", err);
+                });
+            }
+        }
+
+        function startPartScanner() {
+            if (partScanner) {
+                stopPartScanner();
+            }
+            
+            partScanner = new Html5Qrcode("partScannerContainer");
+            
+            const config = {
+                fps: 10,
+                qrbox: { width: 300, height: 150 },
+                supportedScanTypes: [
+                    Html5QrcodeScanType.SCAN_TYPE_CAMERA
+                ]
+            };
+
+            partScanner.start(
+                { facingMode: "environment" },
+                config,
+                (decodedText, decodedResult) => {
+                    console.log(`Part barcode detected: ${decodedText}`);
+                    document.getElementById('partInput').value = decodedText;
+                    addPart(); // Automatically add the part
+                },
+                (errorMessage) => {
+                    console.log(`Scan error: ${errorMessage}`);
+                }
+            ).catch(err => {
+                console.error("Failed to start part scanner:", err);
+                showCameraError("partScannerContainer", "לא ניתן לגשת למצלמה. אנא ודא שנתת הרשאה למצלמה.");
+            });
+
+            document.getElementById('partScannerPlaceholder').textContent = "סורק ברקוד חלקים...";
+            document.getElementById('partScannerContainer').classList.add('scanner-active');
+        }
+
+        function stopPartScanner() {
+            if (partScanner) {
+                partScanner.stop().then(() => {
+                    partScanner.clear();
+                    partScanner = null;
+                    document.getElementById('partScannerPlaceholder').textContent = "לחץ 'התחל סריקה' להפעלת המצלמה";
+                    document.getElementById('partScannerContainer').classList.remove('scanner-active');
+                }).catch(err => {
+                    console.error("Error stopping part scanner:", err);
+                });
+            }
+        }
+
+        function showCameraError(containerId, message) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = `<div class="camera-error">${message}</div>`;
+        }
+
+        // Cleanup scanners when leaving screens
+        function resetOrderForm() {
+            document.getElementById('orderIdInput').value = '';
+            document.getElementById('orderProcessing').classList.add('hidden');
+            stopOrderScanner();
+            stopPartScanner();
+            state.currentOrder = null;
+            state.scannedParts = [];
         }
 
         // Authentication
