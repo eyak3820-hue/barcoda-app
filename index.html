@@ -685,35 +685,39 @@
                 stopOrderScanner();
             }
             
+            const container = document.getElementById('orderScannerContainer');
+            container.innerHTML = '<div id="orderScannerPlaceholder">מכין את המצלמה...</div>';
+            
             orderScanner = new Html5Qrcode("orderScannerContainer");
             
-            // Configuration for barcode scanning
             const config = {
                 fps: 10,
-                qrbox: { width: 300, height: 150 },
-                supportedScanTypes: [
-                    Html5QrcodeScanType.SCAN_TYPE_CAMERA
-                ]
+                qrbox: { width: 250, height: 100 },
+                aspectRatio: 1.0,
+                disableFlip: false
             };
 
             orderScanner.start(
-                { facingMode: "environment" }, // Use back camera
+                { facingMode: "environment" },
                 config,
                 (decodedText, decodedResult) => {
-                    console.log(`Order barcode detected: ${decodedText}`);
+                    // Success - barcode detected
                     document.getElementById('orderIdInput').value = decodedText;
+                    showScanSuccess("orderScannerContainer", `נסרק: ${decodedText}`);
                     stopOrderScanner();
+                    
+                    // Auto-start order processing after 1 second
+                    setTimeout(() => {
+                        startOrderProcessing();
+                    }, 1000);
                 },
                 (errorMessage) => {
-                    console.log(`Scan error: ${errorMessage}`);
+                    // Silent errors - don't show them
                 }
             ).catch(err => {
-                console.error("Failed to start order scanner:", err);
-                showCameraError("orderScannerContainer", "לא ניתן לגשת למצלמה. אנא ודא שנתת הרשאה למצלמה.");
+                console.error("Camera access failed:", err);
+                showCameraError("orderScannerContainer", "לא ניתן לגשת למצלמה. אנא ודא שנתת הרשאה לשימוש במצלמה ונסה שוב.");
             });
-
-            document.getElementById('orderScannerPlaceholder').textContent = "סורק ברקוד הזמנה...";
-            document.getElementById('orderScannerContainer').classList.add('scanner-active');
         }
 
         function stopOrderScanner() {
@@ -721,10 +725,8 @@
                 orderScanner.stop().then(() => {
                     orderScanner.clear();
                     orderScanner = null;
-                    document.getElementById('orderScannerPlaceholder').textContent = "לחץ 'התחל סריקה' להפעלת המצלמה";
-                    document.getElementById('orderScannerContainer').classList.remove('scanner-active');
                 }).catch(err => {
-                    console.error("Error stopping order scanner:", err);
+                    console.error("Error stopping scanner:", err);
                 });
             }
         }
@@ -734,34 +736,42 @@
                 stopPartScanner();
             }
             
+            const container = document.getElementById('partScannerContainer');
+            container.innerHTML = '<div id="partScannerPlaceholder">מכין את המצלמה...</div>';
+            container.classList.add('scanner-active');
+            
             partScanner = new Html5Qrcode("partScannerContainer");
             
             const config = {
                 fps: 10,
-                qrbox: { width: 300, height: 150 },
-                supportedScanTypes: [
-                    Html5QrcodeScanType.SCAN_TYPE_CAMERA
-                ]
+                qrbox: { width: 250, height: 100 },
+                aspectRatio: 1.0,
+                disableFlip: false
             };
 
             partScanner.start(
                 { facingMode: "environment" },
                 config,
                 (decodedText, decodedResult) => {
-                    console.log(`Part barcode detected: ${decodedText}`);
+                    // Success - barcode detected
                     document.getElementById('partInput').value = decodedText;
-                    addPart(); // Automatically add the part
+                    showScanSuccess("partScannerContainer", `נסרק: ${decodedText}`);
+                    stopPartScanner();
+                    
+                    // Auto-add the part after showing success
+                    setTimeout(() => {
+                        addPart();
+                        // Reset scanner for next scan
+                        resetPartScanner();
+                    }, 1500);
                 },
                 (errorMessage) => {
-                    console.log(`Scan error: ${errorMessage}`);
+                    // Silent errors
                 }
             ).catch(err => {
-                console.error("Failed to start part scanner:", err);
-                showCameraError("partScannerContainer", "לא ניתן לגשת למצלמה. אנא ודא שנתת הרשאה למצלמה.");
+                console.error("Camera access failed:", err);
+                showCameraError("partScannerContainer", "לא ניתן לגשת למצלמה. אנא ודא שנתת הרשאה לשימוש במצלמה ונסה שוב.");
             });
-
-            document.getElementById('partScannerPlaceholder').textContent = "סורק ברקוד חלקים...";
-            document.getElementById('partScannerContainer').classList.add('scanner-active');
         }
 
         function stopPartScanner() {
@@ -769,17 +779,42 @@
                 partScanner.stop().then(() => {
                     partScanner.clear();
                     partScanner = null;
-                    document.getElementById('partScannerPlaceholder').textContent = "לחץ 'התחל סריקה' להפעלת המצלמה";
-                    document.getElementById('partScannerContainer').classList.remove('scanner-active');
                 }).catch(err => {
-                    console.error("Error stopping part scanner:", err);
+                    console.error("Error stopping scanner:", err);
                 });
             }
         }
 
+        function resetPartScanner() {
+            const container = document.getElementById('partScannerContainer');
+            container.classList.remove('scanner-active');
+            container.innerHTML = `
+                <div class="scanner-placeholder">
+                    <div style="margin-bottom: 10px;">מוכן לסריקת חלק הבא</div>
+                    <button class="btn btn-primary" onclick="startPartScanner()">סרוק חלק</button>
+                </div>
+            `;
+        }
+
+        function showScanSuccess(containerId, message) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = `
+                <div style="background: #4CAF50; color: white; padding: 20px; border-radius: 8px; text-align: center;">
+                    <div style="font-size: 1.2em; margin-bottom: 10px;">✓ הצלחה!</div>
+                    <div>${message}</div>
+                </div>
+            `;
+        }
+
         function showCameraError(containerId, message) {
             const container = document.getElementById(containerId);
-            container.innerHTML = `<div class="camera-error">${message}</div>`;
+            container.innerHTML = `
+                <div class="camera-error">
+                    <div style="margin-bottom: 10px;">⚠️ שגיאה</div>
+                    <div style="margin-bottom: 15px;">${message}</div>
+                    <button class="btn btn-primary" onclick="${containerId.includes('order') ? 'startOrderScanner()' : 'startPartScanner()'}">נסה שוב</button>
+                </div>
+            `;
         }
 
         // Cleanup scanners when leaving screens
