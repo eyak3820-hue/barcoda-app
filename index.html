@@ -1,0 +1,1315 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>מערכת ניהול הזמנות</title>
+    <link rel="manifest" href="manifest.json">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            direction: rtl;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 30px;
+            text-align: center;
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+        }
+
+        .header h1 {
+            color: white;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .user-info {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 1.1rem;
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .nav-btn {
+            padding: 15px 25px;
+            background: rgba(255, 255, 255, 0.95);
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            min-width: 150px;
+        }
+
+        .nav-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+            background: white;
+        }
+
+        .nav-btn.active {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+        }
+
+        .login-card {
+            max-width: 400px;
+            margin: 50px auto;
+            text-align: center;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+            text-align: right;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #555;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+            background: rgba(255, 255, 255, 0.9);
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: #4CAF50;
+            box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+        }
+
+        .btn-primary {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #45a049;
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #545b62;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+        }
+
+        .scanner-container {
+            width: 100%;
+            max-width: 400px;
+            height: 300px;
+            margin: 20px auto;
+            border: 3px dashed #4CAF50;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(76, 175, 80, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .scanner-placeholder {
+            text-align: center;
+            color: #4CAF50;
+            font-size: 1.2rem;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e1e5e9;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4CAF50, #45a049);
+            transition: width 0.3s ease;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 25px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-3px);
+        }
+
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 1.1rem;
+        }
+
+        .pending { color: #FF9800; }
+        .in-progress { color: #2196F3; }
+        .completed { color: #4CAF50; }
+
+        .orders-grid {
+            display: grid;
+            gap: 15px;
+        }
+
+        .order-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            border-right: 5px solid #4CAF50;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .order-card:hover {
+            transform: translateX(-5px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+        }
+
+        .order-card.pending {
+            border-right-color: #FF9800;
+        }
+
+        .order-card.in-progress {
+            border-right-color: #2196F3;
+        }
+
+        .order-card.completed {
+            border-right-color: #4CAF50;
+        }
+
+        .order-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .order-id {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .status-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-badge.pending {
+            background: rgba(255, 152, 0, 0.1);
+            color: #FF9800;
+        }
+
+        .status-badge.in-progress {
+            background: rgba(33, 150, 243, 0.1);
+            color: #2196F3;
+        }
+
+        .status-badge.completed {
+            background: rgba(76, 175, 80, 0.1);
+            color: #4CAF50;
+        }
+
+        .order-details {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 15px;
+            font-size: 0.95rem;
+            color: #666;
+        }
+
+        .parts-list {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+
+        .parts-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .part-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+            border-bottom: 1px solid #e1e5e9;
+        }
+
+        .part-item:last-child {
+            border-bottom: none;
+        }
+
+        .part-scanned {
+            color: #4CAF50;
+            font-weight: bold;
+        }
+
+        .part-missing {
+            color: #dc3545;
+        }
+
+        .search-box {
+            margin-bottom: 20px;
+        }
+
+        .alert {
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            font-weight: 500;
+        }
+
+        .alert-success {
+            background: rgba(76, 175, 80, 0.1);
+            color: #4CAF50;
+            border: 1px solid rgba(76, 175, 80, 0.3);
+        }
+
+        .alert-warning {
+            background: rgba(255, 152, 0, 0.1);
+            color: #FF9800;
+            border: 1px solid rgba(255, 152, 0, 0.3);
+        }
+
+        .alert-error {
+            background: rgba(220, 53, 69, 0.1);
+            color: #dc3545;
+            border: 1px solid rgba(220, 53, 69, 0.3);
+        }
+
+        .alert-info {
+            background: rgba(23, 162, 184, 0.1);
+            color: #17a2b8;
+            border: 1px solid rgba(23, 162, 184, 0.3);
+        }
+
+        .alert-info h4 {
+            margin-bottom: 10px;
+            color: #17a2b8;
+        }
+
+        .alert-info ul {
+            margin: 0;
+            padding-right: 20px;
+        }
+
+        .alert-info li {
+            margin: 5px 0;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .mt-2 { margin-top: 10px; }
+        .mb-2 { margin-bottom: 10px; }
+        .mt-3 { margin-top: 15px; }
+        .mb-3 { margin-bottom: 15px; }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .nav-buttons {
+                flex-direction: column;
+            }
+
+            .nav-btn {
+                width: 100%;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .order-details {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>מערכת ניהול הזמנות</h1>
+            <div class="user-info" id="userInfo"></div>
+        </div>
+
+        <!-- Login Screen -->
+        <div id="loginScreen" class="hidden">
+            <div class="card login-card">
+                <h2 class="text-center mb-3">כניסה למערכת</h2>
+                <div class="form-group">
+                    <label for="username">שם משתמש</label>
+                    <input type="text" id="username" class="form-control" placeholder="הקלד שם משתמש">
+                </div>
+                <button class="btn btn-primary" style="width: 100%;" onclick="login()">התחבר</button>
+            </div>
+        </div>
+
+        <!-- Main App -->
+        <div id="mainApp" class="hidden">
+            <div class="nav-buttons">
+                <button class="nav-btn active" onclick="showDashboard()">לוח בקרה</button>
+                <button class="nav-btn" onclick="showNewOrder()">הזמנה חדשה</button>
+                <button class="nav-btn" onclick="showOrders()">כל ההזמנות</button>
+                <button class="nav-btn" onclick="showImport()">ייבוא נתונים</button>
+                <button class="nav-btn" onclick="logout()">יציאה</button>
+            </div>
+
+            <!-- Dashboard -->
+            <div id="dashboardScreen">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-number pending" id="pendingCount">0</div>
+                        <div class="stat-label">הזמנות ממתינות</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number in-progress" id="inProgressCount">0</div>
+                        <div class="stat-label">בתהליך</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number completed" id="completedCount">0</div>
+                        <div class="stat-label">הושלמו</div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h3>הזמנות אחרונות</h3>
+                        <button class="btn btn-secondary" onclick="loadSampleData()" style="font-size: 0.9rem; padding: 8px 16px;">
+                            📚 טען נתוני דוגמה
+                        </button>
+                    </div>
+                    <div id="recentOrders"></div>
+                </div>
+            </div>
+
+            <!-- New Order Screen -->
+            <div id="newOrderScreen" class="hidden">
+                <div class="card">
+                    <h2>הזמנה חדשה</h2>
+                    <div id="scannerAlert" class="alert alert-warning">
+                        הזנה ידנית של מספר הזמנה (סריקת ברקוד לא זמינה בסביבה זו)
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>מספר הזמנה</label>
+                        <input type="text" id="orderIdInput" class="form-control" placeholder="הקלד או סרוק מספר הזמנה">
+                    </div>
+                    
+                    <div class="scanner-container" id="scannerContainer">
+                        <div class="scanner-placeholder">
+                            הקלד מספר הזמנה בשדה למעלה
+                        </div>
+                    </div>
+                    
+                    <button class="btn btn-primary" onclick="startOrderProcessing()">התחל עיבוד הזמנה</button>
+                </div>
+
+                <!-- Order Processing -->
+                <div id="orderProcessing" class="hidden">
+                    <div class="card">
+                        <h3>עיבוד הזמנה: <span id="currentOrderId"></span></h3>
+                        
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+                        </div>
+                        
+                        <div class="text-center mb-3">
+                            <span id="progressText">0 מתוך 0 חלקים נסרקו</span>
+                        </div>
+
+                        <div class="form-group">
+                            <label>סריקת חלק</label>
+                            <input type="text" id="partInput" class="form-control" placeholder="הקלד או סרוק מספר חלק">
+                        </div>
+
+                        <div class="parts-list">
+                            <div class="parts-title">רשימת חלקים:</div>
+                            <div id="partsList"></div>
+                        </div>
+
+                        <div class="mt-3">
+                            <button class="btn btn-primary" onclick="addPart()">הוסף חלק</button>
+                            <button class="btn btn-secondary" onclick="cancelOrder()">ביטול</button>
+                            <button class="btn btn-primary" id="completeOrderBtn" onclick="completeOrder()" disabled>השלמת הזמנה</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Orders List Screen -->
+            <div id="ordersScreen" class="hidden">
+                <div class="card">
+                    <h2>כל ההזמנות</h2>
+                    
+                    <div class="search-box">
+                        <input type="text" id="searchInput" class="form-control" placeholder="חיפוש הזמנה..." oninput="filterOrders()">
+                    </div>
+
+                    <div class="nav-buttons">
+                        <button class="nav-btn" onclick="filterOrdersByStatus('all')">הכל</button>
+                        <button class="nav-btn" onclick="filterOrdersByStatus('pending')">ממתינות</button>
+                        <button class="nav-btn" onclick="filterOrdersByStatus('in-progress')">בתהליך</button>
+                        <button class="nav-btn" onclick="filterOrdersByStatus('completed')">הושלמו</button>
+                    </div>
+
+                    <div class="orders-grid" id="ordersGrid"></div>
+                </div>
+            </div>
+
+            <!-- Import Screen -->
+            <div id="importScreen" class="hidden">
+                <div class="card">
+                    <h2>ייבוא נתונים</h2>
+                    
+                    <div class="text-center mb-3">
+                        <button class="btn btn-secondary" onclick="loadSampleData()" style="font-size: 1.1rem; padding: 15px 30px;">
+                            🔄 טען נתוני דוגמה
+                        </button>
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <h4>📋 הוראות לייבוא קובץ CSV:</h4>
+                        <ul style="text-align: right; margin: 10px 0;">
+                            <li><strong>שם הקובץ</strong> - מספר ההזמנה (לדוגמה: 210692.csv)</li>
+                            <li><strong>עמודות נדרשות:</strong>
+                                <ul style="margin: 5px 0 5px 20px;">
+                                    <li>PartID או מספר חלק או מק"ט חומר</li>
+                                    <li>מספר הזמנה (אופציונלי - אם לא קיים ישתמש בשם הקובץ)</li>
+                                </ul>
+                            </li>
+                            <li><strong>עמודות נוספות נתמכות:</strong> לקוח במערכת, הזמנה עבור פרויקט, תאריך אספקה, כמות, גודל וכו'</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="csvFile">בחר קובץ CSV</label>
+                        <input type="file" id="csvFile" class="form-control" accept=".csv" onchange="importCSV()">
+                    </div>
+                    
+                    <div class="mt-3">
+                        <h4>📄 דוגמה לפורמט הקובץ:</h4>
+                        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; font-family: monospace; text-align: left; direction: ltr;">
+                            מספר הזמנה,PartID,מק"ט חומר,כמות<br>
+                            210692,12345,MAT001,2<br>
+                            210692,12346,MAT002,1<br>
+                            210692,12347,MAT003,3
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global State
+        const state = {
+            user: null,
+            orders: [],
+            currentOrder: null,
+            scannedParts: []
+        };
+
+        // Initialize App
+        function init() {
+            loadData();
+            const savedUser = localStorage.getItem('orderAppUser');
+            if (savedUser) {
+                state.user = savedUser;
+                showMainApp();
+            } else {
+                showLogin();
+            }
+        }
+
+        // Authentication
+        function showLogin() {
+            document.getElementById('loginScreen').classList.remove('hidden');
+            document.getElementById('mainApp').classList.add('hidden');
+            document.getElementById('userInfo').textContent = '';
+        }
+
+        function login() {
+            const username = document.getElementById('username').value.trim();
+            if (!username) {
+                alert('אנא הזן שם משתמש');
+                return;
+            }
+            state.user = username;
+            localStorage.setItem('orderAppUser', username);
+            showMainApp();
+        }
+
+        function logout() {
+            state.user = null;
+            localStorage.removeItem('orderAppUser');
+            showLogin();
+        }
+
+        function showMainApp() {
+            document.getElementById('loginScreen').classList.add('hidden');
+            document.getElementById('mainApp').classList.remove('hidden');
+            document.getElementById('userInfo').textContent = `ברוך הבא, ${state.user}`;
+            
+            // Set first nav button as active and show dashboard
+            const firstNavBtn = document.querySelector('.nav-btn');
+            if (firstNavBtn) {
+                firstNavBtn.classList.add('active');
+            }
+            document.getElementById('dashboardScreen').classList.remove('hidden');
+            updateDashboard();
+        }
+
+        // Navigation
+        function setActiveNav(activeElement = null) {
+            document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('[id$="Screen"]').forEach(screen => screen.classList.add('hidden'));
+            
+            if (activeElement) {
+                activeElement.classList.add('active');
+            }
+        }
+
+        function showDashboard() {
+            setActiveNav(event?.target);
+            document.getElementById('dashboardScreen').classList.remove('hidden');
+            updateDashboard();
+        }
+
+        function showNewOrder() {
+            setActiveNav(event?.target);
+            document.getElementById('newOrderScreen').classList.remove('hidden');
+            resetOrderForm();
+        }
+
+        function showOrders() {
+            setActiveNav(event?.target);
+            document.getElementById('ordersScreen').classList.remove('hidden');
+            displayAllOrders();
+        }
+
+        function showImport() {
+            setActiveNav(event?.target);
+            document.getElementById('importScreen').classList.remove('hidden');
+        }
+
+        // Dashboard
+        function updateDashboard() {
+            const pending = state.orders.filter(o => o.status === 'pending').length;
+            const inProgress = state.orders.filter(o => o.status === 'in-progress').length;
+            const completed = state.orders.filter(o => o.status === 'completed').length;
+
+            document.getElementById('pendingCount').textContent = pending;
+            document.getElementById('inProgressCount').textContent = inProgress;
+            document.getElementById('completedCount').textContent = completed;
+
+            // Show recent orders
+            const recent = state.orders.slice(-5).reverse();
+            const recentHtml = recent.map(order => `
+                <div class="order-card ${order.status}">
+                    <div class="order-header">
+                        <span class="order-id">${order.id}</span>
+                        <span class="status-badge ${order.status}">${getStatusText(order.status)}</span>
+                    </div>
+                    <div class="order-details">
+                        <div>חלקים: ${order.parts.length}</div>
+                        <div>${order.completedAt ? new Date(order.completedAt).toLocaleDateString('he-IL') : ''}</div>
+                    </div>
+                </div>
+            `).join('');
+
+            document.getElementById('recentOrders').innerHTML = recent.length ? recentHtml : '<p>אין הזמנות אחרונות</p>';
+        }
+
+        // Order Processing
+        function resetOrderForm() {
+            document.getElementById('orderIdInput').value = '';
+            document.getElementById('orderProcessing').classList.add('hidden');
+            state.currentOrder = null;
+            state.scannedParts = [];
+        }
+
+        function startOrderProcessing() {
+            const orderId = document.getElementById('orderIdInput').value.trim();
+            if (!orderId) {
+                alert('אנא הזן מספר הזמנה');
+                return;
+            }
+
+            const existingOrder = state.orders.find(o => o.id === orderId);
+            if (existingOrder && existingOrder.status === 'completed') {
+                alert('הזמנה זו כבר הושלמה');
+                return;
+            }
+
+            if (existingOrder) {
+                state.currentOrder = existingOrder;
+                state.scannedParts = existingOrder.scannedParts || [];
+            } else {
+                // Create new order
+                const newOrder = {
+                    id: orderId,
+                    parts: [],
+                    status: 'in-progress',
+                    createdAt: new Date().toISOString(),
+                    createdBy: state.user,
+                    scannedParts: []
+                };
+                state.orders.push(newOrder);
+                state.currentOrder = newOrder;
+                state.scannedParts = [];
+            }
+
+            state.currentOrder.status = 'in-progress';
+            document.getElementById('currentOrderId').textContent = orderId;
+            document.getElementById('orderProcessing').classList.remove('hidden');
+            updateOrderProgress();
+            saveData();
+        }
+
+        function addPart() {
+            const partId = document.getElementById('partInput').value.trim();
+            if (!partId) {
+                alert('אנא הזן מספר חלק');
+                return;
+            }
+
+            if (state.scannedParts.includes(partId)) {
+                alert('חלק זה כבר נסרק');
+                document.getElementById('partInput').value = '';
+                return;
+            }
+
+            // Add part to current order if not exists
+            if (!state.currentOrder.parts.includes(partId)) {
+                state.currentOrder.parts.push(partId);
+            }
+
+            state.scannedParts.push(partId);
+            state.currentOrder.scannedParts = [...state.scannedParts];
+            
+            document.getElementById('partInput').value = '';
+            updateOrderProgress();
+            saveData();
+        }
+
+        function updateOrderProgress() {
+            const total = state.currentOrder.parts.length || 1;
+            const scanned = state.scannedParts.length;
+            const percentage = Math.round((scanned / total) * 100);
+
+            document.getElementById('progressFill').style.width = `${percentage}%`;
+            document.getElementById('progressText').textContent = `${scanned} מתוך ${total} חלקים נסרקו`;
+
+            // Update parts list
+            const partsHtml = state.currentOrder.parts.map(part => {
+                const isScanned = state.scannedParts.includes(part);
+                return `
+                    <div class="part-item">
+                        <span class="${isScanned ? 'part-scanned' : 'part-missing'}">${part}</span>
+                        <span>${isScanned ? '✓ נסרק' : 'ממתין'}</span>
+                    </div>
+                `;
+            }).join('');
+
+            document.getElementById('partsList').innerHTML = partsHtml;
+
+            // Enable complete button if all parts scanned
+            const completeBtn = document.getElementById('completeOrderBtn');
+            completeBtn.disabled = scanned < total;
+        }
+
+        function completeOrder() {
+            if (state.scannedParts.length < state.currentOrder.parts.length) {
+                alert('לא כל החלקים נסרקו');
+                return;
+            }
+
+            state.currentOrder.status = 'completed';
+            state.currentOrder.completedAt = new Date().toISOString();
+            state.currentOrder.completedBy = state.user;
+            
+            saveData();
+            alert('ההזמנה הושלמה בהצלחה!');
+            showDashboard();
+        }
+
+        function cancelOrder() {
+            if (confirm('האם אתה בטוח שברצונך לבטל?')) {
+                if (state.currentOrder && state.currentOrder.status === 'in-progress' && state.scannedParts.length === 0) {
+                    // Remove empty order
+                    state.orders = state.orders.filter(o => o.id !== state.currentOrder.id);
+                }
+                showDashboard();
+            }
+        }
+
+        // Orders Display
+        function displayAllOrders() {
+            const ordersHtml = state.orders.map(order => `
+                <div class="order-card ${order.status}">
+                    <div class="order-header">
+                        <span class="order-id">${order.id}</span>
+                        <span class="status-badge ${order.status}">${getStatusText(order.status)}</span>
+                    </div>
+                    
+                    ${order.customer || order.project || order.deliveryDate ? `
+                        <div class="order-details">
+                            ${order.customer ? `<div><strong>לקוח:</strong> ${order.customer}</div>` : ''}
+                            ${order.project ? `<div><strong>פרויקט:</strong> ${order.project}</div>` : ''}
+                            ${order.deliveryDate ? `<div><strong>תאריך אספקה:</strong> ${order.deliveryDate}</div>` : ''}
+                        </div>
+                    ` : ''}
+                    
+                    <div class="order-details">
+                        <div><strong>סה"כ חלקים:</strong> ${order.parts.length}</div>
+                        <div><strong>נסרקו:</strong> ${(order.scannedParts || []).length}</div>
+                        <div><strong>נוצר:</strong> ${new Date(order.createdAt).toLocaleDateString('he-IL')}</div>
+                        <div><strong>נוצר ע"י:</strong> ${order.createdBy}</div>
+                    </div>
+                    
+                    ${order.completedAt ? `
+                        <div class="order-details">
+                            <div><strong>הושלם:</strong> ${new Date(order.completedAt).toLocaleDateString('he-IL')}</div>
+                            <div><strong>הושלם ע"י:</strong> ${order.completedBy}</div>
+                        </div>
+                    ` : ''}
+                    
+                    <div class="parts-list">
+                        <div class="parts-title">חלקים (${order.parts.length}):</div>
+                        ${order.parts.slice(0, 5).map((part, index) => {
+                            const isScanned = (order.scannedParts || []).includes(part);
+                            const partDetail = order.partDetails && order.partDetails[index];
+                            return `
+                                <div class="part-item">
+                                    <div>
+                                        <span class="${isScanned ? 'part-scanned' : 'part-missing'}">${part}</span>
+                                        ${partDetail && partDetail.materialCode ? `<br><small>מק"ט: ${partDetail.materialCode}</small>` : ''}
+                                        ${partDetail && partDetail.quantity > 1 ? `<br><small>כמות: ${partDetail.quantity}</small>` : ''}
+                                    </div>
+                                    <span style="font-size: 1.2em;">${isScanned ? '✓' : '○'}</span>
+                                </div>
+                            `;
+                        }).join('')}
+                        ${order.parts.length > 5 ? `<div class="text-center mt-2">ועוד ${order.parts.length - 5} חלקים...</div>` : ''}
+                    </div>
+                    
+                    ${order.status !== 'completed' ? `
+                        <div class="mt-3">
+                            <button class="btn btn-primary" onclick="continueOrder('${order.id}')">המשך עיבוד</button>
+                        </div>
+                    ` : ''}
+                </div>
+            `).join('');
+
+            document.getElementById('ordersGrid').innerHTML = ordersHtml || '<p class="text-center">אין הזמנות</p>';
+        }
+
+        function filterOrders() {
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            const cards = document.querySelectorAll('#ordersGrid .order-card');
+            
+            cards.forEach(card => {
+                const text = card.textContent.toLowerCase();
+                card.style.display = text.includes(search) ? 'block' : 'none';
+            });
+        }
+
+        function filterOrdersByStatus(status) {
+            const cards = document.querySelectorAll('#ordersGrid .order-card');
+            
+            cards.forEach(card => {
+                if (status === 'all') {
+                    card.style.display = 'block';
+                } else {
+                    const hasStatus = card.classList.contains(status);
+                    card.style.display = hasStatus ? 'block' : 'none';
+                }
+            });
+        }
+
+        // Data Management
+        function saveData() {
+            localStorage.setItem('orderAppData', JSON.stringify(state.orders));
+        }
+
+        function loadData() {
+            const saved = localStorage.getItem('orderAppData');
+            if (saved) {
+                try {
+                    state.orders = JSON.parse(saved);
+                } catch (e) {
+                    console.error('Failed to load data:', e);
+                    state.orders = [];
+                }
+            } else {
+                loadSampleData();
+            }
+        }
+
+        function loadSampleData() {
+            try {
+                state.orders = [
+                    {
+                        id: 'ORDER001',
+                        parts: ['PART001', 'PART002', 'PART003'],
+                        scannedParts: ['PART001', 'PART002', 'PART003'],
+                        status: 'completed',
+                        createdAt: '2024-01-15T08:00:00Z',
+                        createdBy: 'משתמש דוגמה',
+                        completedAt: '2024-01-15T09:30:00Z',
+                        completedBy: 'משתמש דוגמה',
+                        customer: 'חברת ABC בע"מ',
+                        project: 'פרויקט אלפא',
+                        deliveryDate: '2024-01-20'
+                    },
+                    {
+                        id: '210692',
+                        parts: ['12345', '12346', '12347', '12348'],
+                        scannedParts: ['12345', '12346'],
+                        status: 'in-progress',
+                        createdAt: '2024-01-16T10:00:00Z',
+                        createdBy: 'עובד מחסן',
+                        customer: 'חברת XYZ בע"מ',
+                        project: 'פרויקט בטא',
+                        deliveryDate: '2024-01-25',
+                        partDetails: [
+                            { partId: '12345', materialCode: 'MAT001', quantity: 2 },
+                            { partId: '12346', materialCode: 'MAT002', quantity: 1 },
+                            { partId: '12347', materialCode: 'MAT003', quantity: 3 },
+                            { partId: '12348', materialCode: 'MAT004', quantity: 1 }
+                        ]
+                    },
+                    {
+                        id: '210693',
+                        parts: ['PART008', 'PART009'],
+                        scannedParts: [],
+                        status: 'pending',
+                        createdAt: '2024-01-16T14:00:00Z',
+                        createdBy: 'מנהל המחסן',
+                        customer: 'חברת DEF בע"מ',
+                        project: 'פרויקט גמא',
+                        deliveryDate: '2024-01-30'
+                    },
+                    {
+                        id: '210694',
+                        parts: ['PART010', 'PART011', 'PART012', 'PART013', 'PART014'],
+                        scannedParts: ['PART010', 'PART011', 'PART012', 'PART013', 'PART014'],
+                        status: 'completed',
+                        createdAt: '2024-01-14T11:00:00Z',
+                        createdBy: 'מנהל',
+                        completedAt: '2024-01-14T12:45:00Z',
+                        completedBy: 'מנהל',
+                        customer: 'חברת GHI בע"מ',
+                        project: 'פרויקט דלתא',
+                        deliveryDate: '2024-01-18'
+                    },
+                    {
+                        id: '210695',
+                        parts: ['PART015', 'PART016', 'PART017'],
+                        scannedParts: ['PART015'],
+                        status: 'in-progress',
+                        createdAt: '2024-01-17T09:00:00Z',
+                        createdBy: 'עובד מחסן',
+                        customer: 'חברת JKL בע"מ',
+                        project: 'פרויקט אפסילון',
+                        deliveryDate: '2024-02-01'
+                    }
+                ];
+                
+                saveData();
+                alert('✅ נתוני דוגמה נטענו בהצלחה!\n\n📊 נטענו 5 הזמנות:\n- 2 הושלמו\n- 2 בתהליך\n- 1 ממתינה');
+                
+                // Update dashboard if we're on it
+                if (!document.getElementById('dashboardScreen').classList.contains('hidden')) {
+                    updateDashboard();
+                }
+                
+                console.log('Sample data loaded:', state.orders);
+                
+            } catch (error) {
+                console.error('Error loading sample data:', error);
+                alert('שגיאה בטעינת נתוני דוגמה: ' + error.message);
+            }
+        }
+
+        // CSV Import
+        function importCSV() {
+            const fileInput = document.getElementById('csvFile');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                alert('אנא בחר קובץ CSV');
+                return;
+            }
+
+            Papa.parse(file, {
+                header: true,
+                skipEmptyLines: true,
+                dynamicTyping: false, // Keep as strings to avoid issues
+                complete: function(results) {
+                    try {
+                        console.log('CSV Headers:', results.meta.fields);
+                        console.log('Total rows:', results.data.length);
+                        console.log('First few rows:', results.data.slice(0, 3));
+                        
+                        const ordersMap = new Map();
+                        let validRows = 0;
+                        let skippedRows = 0;
+                        
+                        // Try to extract order ID from filename (remove .csv extension)
+                        const fileOrderId = file.name.replace(/\.csv$/i, '').replace(/\.CSV$/i, '');
+                        console.log('File order ID:', fileOrderId);
+                        
+                        results.data.forEach((row, index) => {
+                            // Debug each row
+                            console.log(`Processing row ${index + 1}:`, row);
+                            
+                            // Try different column name variations for order ID
+                            let orderId = (
+                                row['מספר הזמנה'] ||
+                                row['מספר הזמנה במערכת'] ||
+                                row.order_id || 
+                                row.orderId || 
+                                row.OrderID ||
+                                row['Order ID'] || 
+                                row['order id'] ||
+                                row['מזהה הזמנה']
+                            );
+                            
+                            // If no order ID found in row, use filename as order ID
+                            if ((!orderId || orderId === '' || orderId === null || orderId === undefined) && fileOrderId && fileOrderId !== 'undefined') {
+                                orderId = fileOrderId;
+                                console.log(`Using filename as order ID: ${orderId}`);
+                            }
+                            
+                            // Convert to string and clean
+                            orderId = orderId?.toString().trim();
+                            
+                            // Try different column name variations for part ID
+                            const partId = (
+                                row['PartID'] ||
+                                row['מספר חלק'] ||
+                                row['מקט חומר'] ||
+                                row['מק"ט חומר'] ||
+                                row.part_id || 
+                                row.partId || 
+                                row.PartID ||
+                                row['Part ID'] || 
+                                row['part id'] ||
+                                row['מזהה חלק'] ||
+                                row.part_uid ||
+                                row.partUid
+                            )?.toString().trim();
+                            
+                            console.log(`Row ${index + 1} - Order ID: "${orderId}", Part ID: "${partId}"`);
+                            
+                            if (!orderId || !partId || orderId === 'undefined' || partId === 'undefined' || orderId === '' || partId === '') {
+                                console.warn(`שורה ${index + 1} נדלגה - מזהה הזמנה: "${orderId}", מזהה חלק: "${partId}"`);
+                                skippedRows++;
+                                return;
+                            }
+                            
+                            validRows++;
+                            console.log(`Valid row ${index + 1}: Order ${orderId}, Part ${partId}`);
+                            
+                            if (!ordersMap.has(orderId)) {
+                                ordersMap.set(orderId, {
+                                    id: orderId,
+                                    parts: [],
+                                    scannedParts: [],
+                                    status: 'pending',
+                                    createdAt: new Date().toISOString(),
+                                    createdBy: state.user,
+                                    // Add additional information from CSV
+                                    customer: row['לקוח במערכת'] || '',
+                                    project: row['הזמנה עבור פרויקט'] || '',
+                                    deliveryDate: row['תאריך אספקה'] || '',
+                                    totalParts: 0
+                                });
+                                console.log(`Created new order: ${orderId}`);
+                            }
+                            
+                            const order = ordersMap.get(orderId);
+                            if (!order.parts.includes(partId)) {
+                                order.parts.push(partId);
+                                order.totalParts = order.parts.length;
+                                
+                                // Store part details
+                                if (!order.partDetails) {
+                                    order.partDetails = [];
+                                }
+                                
+                                order.partDetails.push({
+                                    partId: partId,
+                                    materialCode: row['מק"ט חומר'] || '',
+                                    partNumber: row['מספר חלק'] || '',
+                                    size: row['גודל ( במ"ר או אורך רוחב)'] || '',
+                                    length: row['אורך'] || '',
+                                    width: row['רוחב'] || '',
+                                    quantity: row['כמות'] || 1,
+                                    specialProcessing: row['עיבוד מיוחד'] || '',
+                                    additionalDetails: row['פרטים נוספים'] || '',
+                                    specialMeter: row['מטר מיוחד'] || ''
+                                });
+                                
+                                console.log(`Added part ${partId} to order ${orderId}`);
+                            }
+                        });
+                        
+                        console.log(`Processing complete. Valid rows: ${validRows}, Skipped: ${skippedRows}`);
+                        console.log('Orders map:', ordersMap);
+                        
+                        if (ordersMap.size === 0) {
+                            const availableColumns = results.meta.fields?.join(', ') || 'לא זוהו עמודות';
+                            alert(`לא נמצאו נתונים תקינים בקובץ.\n\nהקובץ צריך להכיל עמודות:\n- מספר הזמנה (או שם הקובץ כמזהה)\n- PartID או מספר חלק או מק"ט חומר\n\nעמודות שנמצאו: ${availableColumns}\n\nבדוק את ה-Console לפרטים נוספים.`);
+                            return;
+                        }
+                        
+                        // Add new orders to existing ones
+                        ordersMap.forEach(order => {
+                            const existingIndex = state.orders.findIndex(o => o.id === order.id);
+                            if (existingIndex >= 0) {
+                                // Update existing order - merge parts
+                                const existingOrder = state.orders[existingIndex];
+                                order.parts.forEach(part => {
+                                    if (!existingOrder.parts.includes(part)) {
+                                        existingOrder.parts.push(part);
+                                    }
+                                });
+                                
+                                // Update additional info
+                                existingOrder.customer = order.customer || existingOrder.customer;
+                                existingOrder.project = order.project || existingOrder.project;
+                                existingOrder.deliveryDate = order.deliveryDate || existingOrder.deliveryDate;
+                                existingOrder.partDetails = [...(existingOrder.partDetails || []), ...(order.partDetails || [])];
+                                existingOrder.totalParts = existingOrder.parts.length;
+                                console.log(`Updated existing order: ${order.id}`);
+                            } else {
+                                // Add new order
+                                state.orders.push(order);
+                                console.log(`Added new order: ${order.id}`);
+                            }
+                        });
+                        
+                        saveData();
+                        alert(`ייבוא הושלם בהצלחה!\n\n📊 ${ordersMap.size} הזמנות יובאו\n✅ ${validRows} שורות תקינות\n⚠️ ${skippedRows} שורות נדלגו\n\n💡 שם הקובץ "${fileOrderId}" שימש כמזהה הזמנה`);
+                        fileInput.value = '';
+                        updateDashboard();
+                        
+                        console.log('Final state.orders:', state.orders);
+                        
+                    } catch (error) {
+                        console.error('שגיאה בעיבוד CSV:', error);
+                        alert('שגיאה בעיבוד קובץ CSV: ' + error.message);
+                    }
+                },
+                error: function(error) {
+                    console.error('שגיאה בקריאת CSV:', error);
+                    alert('שגיאה בקריאת קובץ CSV: ' + error.message);
+                }
+            });
+        }
+
+        // Helper Functions
+        function getStatusText(status) {
+            const statusMap = {
+                'pending': 'ממתין',
+                'in-progress': 'בתהליך',
+                'completed': 'הושלם'
+            };
+            return statusMap[status] || status;
+        }
+
+        function continueOrder(orderId) {
+            const order = state.orders.find(o => o.id === orderId);
+            if (!order) {
+                alert('הזמנה לא נמצאה');
+                return;
+            }
+            
+            state.currentOrder = order;
+            state.scannedParts = [...(order.scannedParts || [])];
+            
+            // Switch to new order screen and show processing
+            showNewOrder();
+            document.getElementById('orderIdInput').value = orderId;
+            startOrderProcessing();
+        }
+
+        // Event Listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            try {
+                init();
+            } catch (error) {
+                console.error('Error initializing app:', error);
+                alert('שגיאה בהפעלת האפליקציה: ' + error.message);
+            }
+        });
+
+        // Handle Enter key in input fields
+        document.addEventListener('keypress', function(e) {
+            try {
+                if (e.key === 'Enter') {
+                    if (e.target.id === 'username') {
+                        login();
+                    } else if (e.target.id === 'orderIdInput') {
+                        startOrderProcessing();
+                    } else if (e.target.id === 'partInput') {
+                        addPart();
+                    }
+                }
+            } catch (error) {
+                console.error('Error handling keypress:', error);
+            }
+        });
+
+        // Auto-save on visibility change (when user switches tabs/apps)
+        document.addEventListener('visibilitychange', function() {
+            try {
+                if (document.visibilityState === 'hidden') {
+                    saveData();
+                }
+            } catch (error) {
+                console.error('Error auto-saving:', error);
+            }
+        });
+
+        // Periodic auto-save
+        setInterval(function() {
+            try {
+                saveData();
+            } catch (error) {
+                console.error('Error in periodic save:', error);
+            }
+        }, 30000); // Save every 30 seconds
+
+        // Handle browser back button
+        window.addEventListener('popstate', function(e) {
+            try {
+                if (state.user) {
+                    showDashboard();
+                }
+            } catch (error) {
+                console.error('Error handling popstate:', error);
+            }
+        });
+
+        // Global error handler
+        window.addEventListener('error', function(e) {
+            console.error('Global error:', e.error);
+            alert('אירעה שגיאה באפליקציה. אנא רענן את הדף.');
+        });
+    </script>
+</body>
+</html>
